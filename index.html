@@ -1,0 +1,286 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Sesión 4 — Exacto vs Heurístico (Coste · Tiempo · Calidad)</title>
+  <meta name="description" content="Práctica interactiva: comparar soluciones exactas vs heurísticas en Knapsack y TSP, midiendo tiempo, calidad y gap." />
+  <link rel="stylesheet" href="assets/styles.css" />
+</head>
+<body>
+  <header class="topbar">
+    <div class="topbar__inner">
+      <div>
+        <div class="kicker">Sesión 4 · Complejidad y límites prácticos</div>
+        <h1>Exacto vs Heurístico: tiempo, calidad y gap</h1>
+        <p class="sub">Dos mini-problemas (Mochila y Ruta) para ver por qué lo “perfecto” no siempre es viable cuando crece el tamaño.</p>
+      </div>
+      <div class="topbar__right">
+        <div class="pill">
+          <span class="dot dot--warn"></span>
+          <span>Consejo: sube <b>n</b> poco a poco</span>
+        </div>
+        <button id="exportBtn" class="btn btn--ghost" disabled>Exportar resultados (JSON)</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="wrap">
+    <section class="card">
+      <div class="tabs" role="tablist" aria-label="Problemas">
+        <button class="tab tab--active" role="tab" aria-selected="true" aria-controls="panel-knapsack" id="tab-knapsack">Mochila (Knapsack)</button>
+        <button class="tab" role="tab" aria-selected="false" aria-controls="panel-tsp" id="tab-tsp">Ruta (TSP pequeño)</button>
+      </div>
+
+      <!-- Panel: Knapsack -->
+      <div id="panel-knapsack" class="panel panel--active" role="tabpanel" aria-labelledby="tab-knapsack">
+        <div class="grid2">
+          <div class="card card--inner">
+            <h2>1) Configura el entorno</h2>
+            <div class="controls">
+              <div class="control">
+                <label>Seed (reproducible)</label>
+                <input id="seedInput" type="text" value="S4-2510A" />
+                <div class="hint">Mismo seed → mismos datos.</div>
+              </div>
+
+              <div class="control">
+                <label>Nº de objetos (n): <span id="k_n_val" class="mono">18</span></label>
+                <input id="k_n" type="range" min="6" max="40" step="1" value="18" />
+                <div class="hint">Aumenta n para ver el coste.</div>
+              </div>
+
+              <div class="control">
+                <label>Capacidad (W): <span id="k_W_val" class="mono">60</span></label>
+                <input id="k_W" type="range" min="10" max="200" step="1" value="60" />
+                <div class="hint">DP exacto suele crecer con n·W.</div>
+              </div>
+
+              <div class="row">
+                <button id="k_gen" class="btn">Generar objetos</button>
+                <button id="k_run_exact" class="btn btn--ghost" disabled>Ejecutar exacto (DP)</button>
+                <button id="k_run_heur" class="btn btn--ghost" disabled>Ejecutar heurística (Greedy)</button>
+                <button id="k_run_both" class="btn btn--ghost" disabled>Ejecutar ambos</button>
+              </div>
+
+              <div class="pill">
+                <span class="dot"></span>
+                <span>Calidad = <b>valor total</b> (más es mejor)</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="card card--inner">
+            <h2>2) Resultados (tiempo y calidad)</h2>
+            <div class="kpis">
+              <div class="kpi">
+                <div class="kpi__t">Exacto (DP)</div>
+                <div class="kpi__v" id="k_exact_value">—</div>
+                <div class="kpi__s" id="k_exact_time">—</div>
+              </div>
+              <div class="kpi">
+                <div class="kpi__t">Heurística (Greedy)</div>
+                <div class="kpi__v" id="k_heur_value">—</div>
+                <div class="kpi__s" id="k_heur_time">—</div>
+              </div>
+              <div class="kpi">
+                <div class="kpi__t">Gap (Greedy vs óptimo)</div>
+                <div class="kpi__v" id="k_gap">—</div>
+                <div class="kpi__s">0% = coincide con el óptimo en este caso</div>
+              </div>
+            </div>
+
+            <div class="split">
+              <div>
+                <h3>Objetos (peso, valor)</h3>
+                <div class="tableWrap">
+                  <table>
+                    <thead>
+                      <tr><th>#</th><th>Peso</th><th>Valor</th><th>Ratio</th></tr>
+                    </thead>
+                    <tbody id="k_items_tbl"></tbody>
+                  </table>
+                </div>
+              </div>
+              <div>
+                <h3>Selección</h3>
+                <div class="note">
+                  <div class="note__title">Cómo leer esto</div>
+                  <div class="note__body">
+                    <ul>
+                      <li><b>Exacto</b> garantiza el mejor valor (si termina).</li>
+                      <li><b>Greedy</b> toma atajos: rápido, pero no siempre óptimo.</li>
+                      <li>Si subes <b>n</b> o <b>W</b>, observa cómo cambia el tiempo.</li>
+                    </ul>
+                  </div>
+                </div>
+                <div class="stack">
+                  <div class="sel">
+                    <div class="sel__h">Exacto</div>
+                    <div class="sel__b" id="k_exact_sel">—</div>
+                  </div>
+                  <div class="sel">
+                    <div class="sel__h">Greedy</div>
+                    <div class="sel__b" id="k_heur_sel">—</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="warn" id="k_warn" hidden>
+              <span class="dot dot--warn"></span>
+              <span id="k_warn_text"></span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Panel: TSP -->
+      <div id="panel-tsp" class="panel" role="tabpanel" aria-labelledby="tab-tsp">
+        <div class="grid2">
+          <div class="card card--inner">
+            <h2>1) Configura el entorno</h2>
+            <div class="controls">
+              <div class="control">
+                <label>Seed (reproducible)</label>
+                <input id="seedInput2" type="text" value="S4-2510A" />
+                <div class="hint">Mismo seed → mismos puntos.</div>
+              </div>
+
+              <div class="control">
+                <label>Nº de puntos (n): <span id="t_n_val" class="mono">9</span></label>
+                <input id="t_n" type="range" min="5" max="11" step="1" value="9" />
+                <div class="hint">Exacto (fuerza bruta) se bloquea al crecer n.</div>
+              </div>
+
+              <div class="control">
+                <label>Distribución de puntos</label>
+                <select id="t_mode">
+                  <option value="grid">Grid 0–20 (enteros)</option>
+                  <option value="circle">Círculo (con ruido)</option>
+                  <option value="cluster">Clústeres (2 zonas)</option>
+                </select>
+                <div class="hint">Misma n con distinta forma → cambia la ruta.</div>
+              </div>
+
+              <div class="row">
+                <button id="t_gen" class="btn">Generar puntos</button>
+                <button id="t_run_heur" class="btn btn--ghost" disabled>Ejecutar heurística (NN)</button>
+                <button id="t_run_exact" class="btn btn--ghost" disabled>Ejecutar exacto (brute force)</button>
+                <button id="t_run_both" class="btn btn--ghost" disabled>Ejecutar ambos</button>
+              </div>
+
+              <div class="pill">
+                <span class="dot"></span>
+                <span>Calidad = <b>distancia total</b> (menos es mejor)</span>
+              </div>
+
+              <div class="warn" id="t_warn" hidden>
+                <span class="dot dot--warn"></span>
+                <span id="t_warn_text"></span>
+              </div>
+            </div>
+          </div>
+
+          <div class="card card--inner">
+            <h2>2) Resultados (tiempo y calidad)</h2>
+            <div class="kpis">
+              <div class="kpi">
+                <div class="kpi__t">Heurística (NN)</div>
+                <div class="kpi__v" id="t_heur_len">—</div>
+                <div class="kpi__s" id="t_heur_time">—</div>
+              </div>
+              <div class="kpi">
+                <div class="kpi__t">Exacto (brute force)</div>
+                <div class="kpi__v" id="t_exact_len">—</div>
+                <div class="kpi__s" id="t_exact_time">—</div>
+              </div>
+              <div class="kpi">
+                <div class="kpi__t">Gap (NN vs óptimo)</div>
+                <div class="kpi__v" id="t_gap">—</div>
+                <div class="kpi__s">0% = coincide con el óptimo en este caso</div>
+              </div>
+            </div>
+
+            <div class="split">
+              <div>
+                <h3>Puntos (x, y)</h3>
+                <div class="tableWrap">
+                  <table>
+                    <thead>
+                      <tr><th>#</th><th>x</th><th>y</th></tr>
+                    </thead>
+                    <tbody id="t_points_tbl"></tbody>
+                  </table>
+                </div>
+              </div>
+              <div>
+                <h3>Ruta</h3>
+                <div class="note">
+                  <div class="note__title">Cómo leer esto</div>
+                  <div class="note__body">
+                    <ul>
+                      <li><b>NN</b> elige “lo más cercano” en cada paso.</li>
+                      <li><b>Brute force</b> prueba todos los órdenes (solo n pequeño).</li>
+                      <li>Sube n: verás el muro de tiempo (crecimiento factorial).</li>
+                    </ul>
+                  </div>
+                </div>
+                <div class="stack">
+                  <div class="sel">
+                    <div class="sel__h">Heurística (NN)</div>
+                    <div class="sel__b" id="t_heur_tour">—</div>
+                  </div>
+                  <div class="sel">
+                    <div class="sel__h">Exacto</div>
+                    <div class="sel__b" id="t_exact_tour">—</div>
+                  </div>
+                </div>
+
+                <div class="canvasWrap">
+                  <canvas id="t_canvas" width="520" height="360" aria-label="Visualización de la ruta"></canvas>
+                  <div class="hint">Vista rápida (no es un mapa real; solo geometría).</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div><!-- /panel-tsp -->
+
+    </section>
+
+    <section class="card card--side">
+      <h2>Guía rápida (para la práctica)</h2>
+      <ol class="steps">
+        <li><b>Genera</b> datos con un seed.</li>
+        <li>Ejecuta <b>exacto</b> y <b>heurística</b>.</li>
+        <li>Anota <b>tiempo</b>, <b>calidad</b> y <b>gap</b>.</li>
+        <li>Sube el tamaño (<b>n</b>, <b>W</b>) y repite.</li>
+        <li>Concluye: “Elijo X porque…”</li>
+      </ol>
+
+      <div class="divider"></div>
+
+      <h2>Qué significa “gap”</h2>
+      <p class="small">
+        <b>Mochila</b> (maximiza): gap = (óptimo − heurística) / óptimo.
+        <br/><b>Ruta</b> (minimiza): gap = (heurística − óptimo) / óptimo.
+      </p>
+
+      <div class="divider"></div>
+
+      <h2>Seguridad</h2>
+      <p class="small">
+        El exacto de TSP se desactiva por encima de n=10 para evitar congelar el navegador.
+        Si quieres “ver el muro”, prueba n=8→9→10.
+      </p>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <span class="mono">Sesión 4</span> · Coste · Tiempo · Calidad · Exacto vs Heurístico
+  </footer>
+
+  <script src="assets/app.js"></script>
+</body>
+</html>
